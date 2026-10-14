@@ -1,0 +1,56 @@
+# Infraestructura compartida del servidor de casa:
+# - caddy:   proxy inverso. Recibe todo el tráfico web (80/443) y lo envía a
+#            cada proyecto según el nombre (notas.home.arpa, ...).
+# - adguard: DNS de la red. Hace que *.home.arpa apunte a este servidor y
+#            bloquea publicidad como extra.
+#
+# Se levanta antes que los proyectos: crea la red "proxy" que ellos usan.
+name: infra
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      # ":z" permite a SELinux (Rocky) compartir el archivo con el contenedor
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - caddy_data:/data        # certificados y autoridad local: ¡respaldar!
+      - caddy_config:/config
+    networks:
+      - proxy
+
+  adguard:
+    # Tras instalar, conviene fijar la versión (p. ej. adguard/adguardhome:v0.107.55)
+    # para que una actualización no llegue por sorpresa.
+    image: adguard/adguardhome:latest
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000/tcp"   # panel; también en http://dns.home.arpa por Caddy
+    volumes:
+      - adguard_work:/opt/adguardhome/work
+      - adguard_conf:/opt/adguardhome/conf
+    networks:
+      - proxy
+
+networks:
+  # Red compartida con los proyectos. La subred es fija porque las apps
+  # (p. ej. el Nginx de Notas) solo confían en la IP real que les pasa el
+  # proxy si la conexión viene de aquí. No la cambies sin cambiarla también
+  # en los proyectos.
+  proxy:
+    name: proxy
+    ipam:
+      config:
+        - subnet: 10.250.250.0/24
+
+volumes:
+  caddy_data:
+  caddy_config:
+  adguard_work:
+  adguard_conf:

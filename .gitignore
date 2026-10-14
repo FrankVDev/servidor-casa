@@ -1,0 +1,4 @@
+# certificados exportados y respaldos de volúmenes
+*.crt
+*.tgz
+respaldos/

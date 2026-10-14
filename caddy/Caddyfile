@@ -1,0 +1,31 @@
+# Proxy inverso del servidor de casa.
+#
+# Cada proyecto es un bloque: el nombre por el que se entra y el contenedor
+# al que va (el alias que el proyecto declara en la red "proxy").
+#
+# Después de editar este archivo:
+#     docker compose exec -w /etc/caddy caddy caddy reload
+#
+# "http://" al inicio del nombre = solo http. Para https, quítalo
+# (ver README, sección HTTPS).
+{
+	# https con certificados propios de Caddy (gratis): crea su propia
+	# autoridad de certificados. No afecta a los sitios que usan "http://".
+	local_certs
+}
+
+# Notas (github.com/FrankVDev/Notas)
+http://notas.home.arpa {
+	reverse_proxy notas-web:80
+}
+
+# Panel de AdGuard Home
+http://dns.home.arpa {
+	reverse_proxy adguard:3000
+}
+
+# Cualquier otro nombre, o acceso directo por IP: aviso claro en vez de una
+# página en blanco.
+http:// {
+	respond "Este nombre no está configurado en el servidor. Revisa la dirección o el Caddyfile." 404
+}
